@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ultimate Web VLC‑Like Player (Final)</title>
+
+  <!-- Video.js CSS -->
+  <link href="https://vjs.zencdn.net/7.20.3/video-js.css" rel="stylesheet" />
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #121212;
+      color: #fff;
+      text-align: center;
+      margin: 0;
+      padding: 40px;
+    }
+    .container { max-width: 900px; margin: auto; }
+    .input-area { margin: 20px 0; }
+    input {
+      width: 70%; padding: 12px; font-size: 16px;
+      border: none; border-radius: 4px;
+    }
+    button {
+      padding: 10px 16px; font-size: 15px; border: none;
+      margin: 5px; background: #ff5722; color: white;
+      border-radius: 4px; cursor: pointer; transition: 0.2s;
+    }
+    button:hover { background: #e64a19; }
+    .controls-extra, .playlist-controls { margin-top: 15px; }
+    ul.playlist { list-style: none; padding: 0; margin-top: 15px; }
+    ul.playlist li {
+      padding: 8px; background: #1e1e1e; margin: 4px 0;
+      border-radius: 4px; cursor: pointer; word-break: break-all;
+    }
+    ul.playlist li.active { background: #ff5722; }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>🎬 VLC‑Like Video Player (Final with Saved Playlist)</h1>
+
+    <!-- Input for Video URL -->
+    <div class="input-area">
+      <input type="text" id="videoUrl" placeholder="Paste .mp4 or .m3u8 link" />
+      <button id="addBtn">➕ Add to Playlist</button>
+      <button id="clearBtn">🗑 Clear Playlist</button>
+    </div>
+
+    <!-- Video.js Player -->
+    <video
+      id="myPlayer"
+      class="video-js vjs-default-skin"
+      controls
+      preload="auto"
+      width="800"
+      height="450"
+      data-setup='{}'>
+        <source src="" type="application/x-mpegURL" />
+        <source src="" type="video/mp4" />
+        Your browser does not support HTML5 video.
+    </video>
+
+    <!-- Extra VLC-like Controls -->
+    <div class="controls-extra">
+      <button onclick="setSpeed(0.5)">0.5x</button>
+      <button onclick="setSpeed(1)">1x</button>
+      <button onclick="setSpeed(1.5)">1.5x</button>
+      <button onclick="setSpeed(2)">2x</button>
+      <button onclick="snapshot()">📸 Snapshot</button>
+      <button onclick="frameStep()">⏭ Frame Step</button>
+    </div>
+
+    <!-- Playlist controls -->
+    <div class="playlist-controls">
+      <button onclick="prevVideo()">⏮ Prev</button>
+      <button onclick="nextVideo()">⏭ Next</button>
+    </div>
+
+    <!-- Playlist display -->
+    <ul id="playlist" class="playlist"></ul>
+
+    <canvas id="snapshotCanvas" style="display:none;"></canvas>
+  </div>
+
+  <!-- Video.js library -->
+  <script src="https://vjs.zencdn.net/7.20.3/video.min.js"></script>
+  <!-- HLS plugin -->
+  <script src="https://cdn.jsdelivr.net/npm/videojs-contrib-hls@5.15.0/dist/videojs-contrib-hls.min.js"></script>
+
+  <script>
+    const player = videojs('myPlayer');
+    const addBtn = document.getElementById('addBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const videoUrlInput = document.getElementById('videoUrl');
+    const playlistEl = document.getElementById('playlist');
+    const canvas = document.getElementById('snapshotCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let playlist = JSON.parse(localStorage.getItem("playlist")) || [];
+    let currentIndex = parseInt(localStorage.getItem("currentIndex") || "-1");
+
+    // --- Playlist management ---
+    function renderPlaylist() {
+      playlistEl.innerHTML = "";
+      playlist.forEach((url, i) => {
+        const li = document.createElement("li");
+        li.textContent = url;
+        if (i === currentIndex) li.classList.add("active");
+        li.addEventListener("click", () => playVideo(i));
+        playlistEl.appendChild(li);
+      });
+      localStorage.setItem("playlist", JSON.stringify(playlist));
+    }
+
+    function playVideo(index) {
+      if (index < 0 || index >= playlist.length) return;
+      currentIndex = index;
+      localStorage.setItem("currentIndex", currentIndex);
+
+      let url = playlist[index];
+      let type = url.endsWith('.m3u8') ? 'application/x-mpegURL' : 'video/mp4';
+      player.src({ src: url, type: type });
+      player.play();
+      renderPlaylist();
+    }
+
+    addBtn.addEventListener('click', () => {
+      const url = videoUrlInput.value.trim();
+      if (!url) { alert("Please paste a video URL!"); return; }
+
+      playlist.push(url);
+      if (currentIndex === -1) {
+        playVideo(0); // auto start with first video
+      }
+      renderPlaylist();
+      videoUrlInput.value = "";
+    });
+
+    clearBtn.addEventListener('click', () => {
+      playlist = [];
+      currentIndex = -1;
+      localStorage.removeItem("playlist");
+      localStorage.removeItem("currentIndex");
+      renderPlaylist();
+      player.src({ src: "" });
+    });
+
+    function prevVideo() { playVideo(currentIndex - 1); }
+    function nextVideo() { playVideo(currentIndex + 1); }
+
+    // Auto play next on end
+    player.on('ended', () => {
+      if (currentIndex < playlist.length - 1) {
+        playVideo(currentIndex + 1);
+      }
+    });
+
+    // --- Extra controls ---
+    function setSpeed(rate) { player.playbackRate(rate); }
+
+    function snapshot() {
+      const videoEl = player.el().querySelector('video');
+      canvas.width = videoEl.videoWidth;
+      canvas.height = videoEl.videoHeight;
+      ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+      const dataURL = canvas.toDataURL('image/png');
+      const win = window.open('');
+      win.document.write('<img src="' + dataURL + '" />');
+    }
+
+    function frameStep() {
+      player.pause();
+      const fps = 25; // adjust if you know actual fps of stream
+      player.currentTime(player.currentTime() + 1/fps);
+    }
+
+    // --- Initialize on load ---
+    renderPlaylist();
+    if (currentIndex >= 0 && currentIndex < playlist.length) {
+      playVideo(currentIndex);
+    }
+  </script>
+</body>
+</html>
