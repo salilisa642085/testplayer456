@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>JW Player – Paste a Video URL</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Basic styling -->
+  <style>
+    body {
+      background: #141414;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      margin-bottom: 1rem;
+    }
+    .url-box {
+      display: flex;
+      margin-bottom: 20px;
+      width: 100%;
+      max-width: 800px;
+      box-shadow: 0 0 10px rgba(0,0,0,.5);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .url-box input {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      font-size: 14px;
+      outline: none;
+    }
+    .url-box button {
+      padding: 0 20px;
+      border: none;
+      background: #e50914;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+    .url-box button:hover {
+      background: #f6121d;
+    }
+    #video-container {
+      width: 100%;
+      max-width: 800px;
+    }
+  </style>
+</head>
+<body>
+  <h1>JW Player – Paste a Video URL</h1>
+
+  <!-- Input box and button -->
+  <div class="url-box">
+    <input id="video-url-input" type="text" placeholder="Paste your video URL here (e.g. .mp4 or .m3u8)">
+    <button onclick="loadVideo()">▶ Play</button>
+  </div>
+
+  <!-- Video player container -->
+  <div id="video-container">
+    <div id="my-video"></div>
+  </div>
+
+  <!-- Load JW Player Library -->
+  <script src="https://ssl.p.jwpcdn.com/player/v/8.38.1/jwplayer.js"></script>
+  <script>
+    // Set JW Player key if required by your license (free version works without here)
+    // jwplayer.key = "YOUR_LICENSE_KEY";
+
+    // Initialize with a default video so player appears
+    var player = jwplayer("my-video").setup({
+      file: "https://cdn.jwplayer.com/manifests/yp34SRmf.m3u8", 
+      width: "100%",
+      aspectratio: "16:9",
+      controls: true
+    });
+
+    // Function: load user-pasted video
+    function loadVideo() {
+      var url = document.getElementById("video-url-input").value.trim();
+      if (url) {
+        player.setup({
+          file: url,
+          width: "100%",
+          aspectratio: "16:9",
+          controls: true,
+          autoplay: true
+        });
+      } else {
+        alert("Please paste a valid video URL 🎬");
+      }
+    }
+  </script>
+</body>
+</html>
