@@ -3,57 +3,56 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>VLC‑Like Playlist Player</title>
-
-  <!-- Video.js CSS -->
-  <link href="https://vjs.zencdn.net/7.20.3/video-js.css" rel="stylesheet" />
+  <title>JW Player VLC‑Style Playlist</title>
+  <script src="https://ssl.p.jwpcdn.com/player/v/8.38.1/jwplayer.js"></script>
 
   <style>
     body { font-family: Arial, sans-serif; background: #121212; color: #fff; text-align: center; padding: 40px; margin: 0; }
-    .container { max-width: 900px; margin: auto; }
+    .container { max-width: 950px; margin: auto; }
     .input-area { margin: 20px 0; }
     input { width: 70%; padding: 12px; font-size: 16px; border: none; border-radius: 4px; }
     button {
-      padding: 6px 12px; font-size: 14px;
-      margin: 3px; border: none; border-radius: 4px;
-      cursor: pointer; background: #ff5722; color: white; transition: 0.2s;
+      padding: 8px 12px; font-size: 14px; margin: 4px;
+      border: none; border-radius: 4px; cursor: pointer;
+      background: #ff5722; color: white; transition: 0.2s;
     }
     button:hover { background: #e64a19; }
     ul.playlist { list-style: none; padding: 0; margin-top: 15px; }
     ul.playlist li {
-      padding: 8px; background: #1e1e1e; margin: 4px 0;
-      border-radius: 4px; display:flex; justify-content:space-between; align-items:center;
-      word-break: break-all; cursor: pointer;
+      padding: 8px; background: #1e1e1e; margin: 4px 0; border-radius: 4px;
+      display: flex; justify-content: space-between; align-items: center;
+      word-break: break-word;
     }
     ul.playlist li.active { background: #ff5722; }
-    .controls-extra, .playlist-controls { margin-top: 15px; }
-    .li-text { flex: 1; text-align:left; cursor:pointer; padding-right:10px;}
+    .li-text { flex:1; text-align:left; cursor:pointer; padding-right:10px; }
     .mini-btn { font-size:11px; background:#00897b; }
     .mini-btn:hover { background:#00695c; }
+    .controls-extra, .playlist-controls { margin-top: 15px; }
+    /* VLC-like JW skin tweaks */
+    .jwplayer .jw-controlbar {
+      background: rgba(28,28,28,0.95) !important;
+    }
+    .jwplayer .jw-icon-playback { color: #ff6600 !important; }
+    .jwplayer .jw-progress { background: #ff6600 !important; }
+    .jwplayer .jw-icon-inline, .jw-text-elapsed, .jw-text-duration { color:#eee !important; }
   </style>
 </head>
 <body>
 
   <div class="container">
-    <h1>🎬 VLC‑Like Video Player with Playlist</h1>
+    <h1>🎬 JW Player (VLC‑Style) with Playlist</h1>
 
+    <!-- Playlist input -->
     <div class="input-area">
-      <input type="text" id="videoUrl" placeholder="Paste .mp4 or .m3u8 link" />
+      <input type="text" id="videoUrl" placeholder="Paste .mp4 or .m3u8 link here" />
       <button id="addBtn">➕ Add</button>
       <button id="clearBtn">🗑 Clear</button>
     </div>
 
-    <!-- Main Player -->
-    <video
-      id="myPlayer"
-      class="video-js vjs-default-skin"
-      controls preload="auto"
-      width="800" height="450"
-      data-setup='{}'>
-        <source src="" type="video/mp4" />
-    </video>
+    <!-- Player -->
+    <div id="myPlayer">Loading player...</div>
 
-    <!-- VLC Extras -->
+    <!-- Extra VLC Controls -->
     <div class="controls-extra">
       <button onclick="setSpeed(0.5)">0.5x</button>
       <button onclick="setSpeed(1)">1x</button>
@@ -69,103 +68,114 @@
       <button onclick="nextVideo()">⏭ Next</button>
     </div>
 
-    <!-- Playlist Display -->
+    <!-- Playlist UI -->
     <ul id="playlist" class="playlist"></ul>
-
     <canvas id="snapshotCanvas" style="display:none;"></canvas>
   </div>
 
-  <!-- Libraries -->
-  <script src="https://vjs.zencdn.net/7.20.3/video.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/videojs-contrib-hls@5.15.0/dist/videojs-contrib-hls.min.js"></script>
-
   <script>
-    const player = videojs('myPlayer');
+    let jw = null;
     const addBtn    = document.getElementById('addBtn');
     const clearBtn  = document.getElementById('clearBtn');
     const urlInput  = document.getElementById('videoUrl');
     const playlistEl= document.getElementById('playlist');
     const canvas    = document.getElementById('snapshotCanvas');
-    const ctx       = canvas.getContext('2d');
+    const ctx       = canvas.getContext("2d");
 
     let playlist    = JSON.parse(localStorage.getItem("playlist")) || [];
     let currentIndex= parseInt(localStorage.getItem("currentIndex") || "-1");
 
-    function renderPlaylist() {
-      playlistEl.innerHTML = "";
-      playlist.forEach((url, i) => {
-        const li = document.createElement("li");
-        if (i === currentIndex) li.classList.add("active");
+    function initJW(src){
+      if(!src) return;
+      jw = jwplayer("myPlayer").setup({
+        file: src,
+        width: "800", height: "450",
+        controls: true, autostart: true,
+        skin: {
+          name: "seven",
+          active: "#ff6600",
+          inactive: "#cccccc",
+          background: "#1c1c1c"
+        },
+        controlbar: {
+          position: "over",
+          icons: {
+            left: ["play","rewind","fast-forward"],
+            center:["elapsed","progress","duration"],
+            right:["mute","volume","settings","fullscreen"]
+          }
+        }
+      });
+      jw.on("complete",()=>{ if(currentIndex<playlist.length-1) playVideo(currentIndex+1); });
+    }
 
-        // text clickable for selecting
-        const span = document.createElement("span");
-        span.className="li-text";
-        span.textContent=url;
-        span.onclick = () => playVideo(i);
-
-        // standalone button
-        const openBtn = document.createElement("button");
-        openBtn.className="mini-btn";
-        openBtn.textContent="🔗 Open";
+    function renderPlaylist(){
+      playlistEl.innerHTML="";
+      playlist.forEach((url,i)=>{
+        const li=document.createElement("li");
+        if(i===currentIndex) li.classList.add("active");
+        const span=document.createElement("span");
+        span.className="li-text"; span.textContent=url;
+        span.onclick=()=>playVideo(i);
+        const openBtn=document.createElement("button");
+        openBtn.className="mini-btn"; openBtn.textContent="🔗 Open";
         openBtn.onclick=(e)=>{
           e.stopPropagation();
-          window.open('player.html?src='+encodeURIComponent(url), '_blank');
+          window.open("player.html?src="+encodeURIComponent(url),"_blank");
         };
-
-        li.appendChild(span);
-        li.appendChild(openBtn);
+        li.appendChild(span); li.appendChild(openBtn);
         playlistEl.appendChild(li);
       });
-      localStorage.setItem("playlist", JSON.stringify(playlist));
+      localStorage.setItem("playlist",JSON.stringify(playlist));
     }
 
-    function playVideo(index) {
-      if (index < 0 || index >= playlist.length) return;
-      currentIndex = index;
-      localStorage.setItem("currentIndex", currentIndex);
-
-      let url  = playlist[index];
-      let type = url.endsWith('.m3u8') ? 'application/x-mpegURL' : 'video/mp4';
-      player.src({ src: url, type });
-      player.play();
+    function playVideo(index){
+      if(index<0||index>=playlist.length) return;
+      currentIndex=index; localStorage.setItem("currentIndex",currentIndex);
+      const url=playlist[index];
+      if(!jw){ initJW(url); }
+      else { jw.load([{file:url}]); jw.play(); }
       renderPlaylist();
     }
 
-    addBtn.onclick = () => {
-      const url = urlInput.value.trim(); if (!url) return alert("Give me a URL!");
+    addBtn.onclick=()=>{
+      const url=urlInput.value.trim();
+      if(!url) return alert("Paste a video URL");
       playlist.push(url);
-      if (currentIndex === -1) playVideo(0);
-      renderPlaylist();
-      urlInput.value="";
+      if(currentIndex===-1) playVideo(0);
+      renderPlaylist(); urlInput.value="";
     };
 
-    clearBtn.onclick = () => {
-      playlist=[]; currentIndex=-1;
+    clearBtn.onclick=()=>{
+      playlist=[]; currentIndex=-1; jw=null;
       localStorage.removeItem("playlist");
       localStorage.removeItem("currentIndex");
-      renderPlaylist();
-      player.src({src:""});
+      playlistEl.innerHTML="";
+      document.getElementById("myPlayer").innerHTML="Playlist cleared.";
     };
 
     function prevVideo(){ playVideo(currentIndex-1); }
     function nextVideo(){ playVideo(currentIndex+1); }
 
-    player.on('ended',()=>{ if (currentIndex<playlist.length-1) playVideo(currentIndex+1); });
+    function setSpeed(rate){ if(jw) jw.setPlaybackRate(rate); }
 
-    function setSpeed(x){ player.playbackRate(x); }
     function snapshot(){
-      const videoEl=player.el().querySelector('video');
+      if(!jw) return;
+      const videoEl=document.querySelector("#myPlayer video"); if(!videoEl) return;
       canvas.width=videoEl.videoWidth; canvas.height=videoEl.videoHeight;
       ctx.drawImage(videoEl,0,0,canvas.width,canvas.height);
-      const imgURL=canvas.toDataURL();
-      const win=window.open(''); win.document.write(`<img src="${imgURL}"/>`);
+      const url=canvas.toDataURL();
+      const win=window.open(""); win.document.write(`<img src="${url}"/>`);
     }
-    function frameStep(){ player.pause(); player.currentTime(player.currentTime()+1/25); }
 
-    // init
+    function frameStep(){
+      if(!jw) return;
+      const videoEl=document.querySelector("#myPlayer video"); if(!videoEl) return;
+      jw.pause(); videoEl.currentTime+=1/25;
+    }
+
     renderPlaylist();
-    
-    if(currentIndex>=0 && currentIndex<playlist.length) playVideo(currentIndex);
+    if(currentIndex>=0&&currentIndex<playlist.length) playVideo(currentIndex);
   </script>
 </body>
 </html>
