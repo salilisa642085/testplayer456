@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Standalone Player</title>
+  <link href="https://vjs.zencdn.net/7.20.3/video-js.css" rel="stylesheet" />
+  <style>
+    body { background:#121212; margin:0; display:flex; align-items:center; justify-content:center; height:100vh; }
+  </style>
+</head>
+<body>
+
+  <video
+    id="soloPlayer"
+    class="video-js vjs-default-skin"
+    controls preload="auto"
+    width="900" height="500"
+    data-setup='{}'>
+      <source src="" />
+  </video>
+
+  <script src="https://vjs.zencdn.net/7.20.3/video.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/videojs-contrib-hls@5.15.0/dist/videojs-contrib-hls.min.js"></script>
+  <script>
+    const player = videojs('soloPlayer');
+    const params = new URLSearchParams(window.location.search);
+    const url    = params.get("src");
+
+    if (url) {
+      const type = url.endsWith(".m3u8") ? "application/x-mpegURL" : "video/mp4";
+      player.src({ src: url, type: type });
+    } else {
+      alert("No video URL provided. Use ?src=YOUR_VIDEO_URL");
+    }
+  </script>
+</body>
+</html>
