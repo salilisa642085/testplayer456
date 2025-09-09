@@ -3,35 +3,29 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Standalone Player</title>
-  <link href="https://vjs.zencdn.net/7.20.3/video-js.css" rel="stylesheet" />
+  <title>Standalone JW Player</title>
+  <script src="https://ssl.p.jwpcdn.com/player/v/8.38.1/jwplayer.js"></script>
   <style>
     body { background:#121212; margin:0; display:flex; align-items:center; justify-content:center; height:100vh; }
   </style>
 </head>
 <body>
+  <div id="soloPlayer">Loading standalone player...</div>
 
-  <video
-    id="soloPlayer"
-    class="video-js vjs-default-skin"
-    controls preload="auto"
-    width="900" height="500"
-    data-setup='{}'>
-      <source src="" />
-  </video>
-
-  <script src="https://vjs.zencdn.net/7.20.3/video.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/videojs-contrib-hls@5.15.0/dist/videojs-contrib-hls.min.js"></script>
   <script>
-    const player = videojs('soloPlayer');
-    const params = new URLSearchParams(window.location.search);
-    const url    = params.get("src");
-
-    if (url) {
-      const type = url.endsWith(".m3u8") ? "application/x-mpegURL" : "video/mp4";
-      player.src({ src: url, type: type });
+    const params=new URLSearchParams(window.location.search);
+    const url=params.get("src");
+    if(url){
+      jwplayer("soloPlayer").setup({
+        file:url,
+        width:"80%",
+        aspectratio:"16:9",
+        autostart:true,
+        skin:{ name:"seven", active:"#ff6600", inactive:"#ccc", background:"#1c1c1c" },
+        controlbar:{ position:"over" }
+      });
     } else {
-      alert("No video URL provided. Use ?src=YOUR_VIDEO_URL");
+      document.getElementById("soloPlayer").innerHTML="⚠️ No video URL passed. Use ?src=YOUR_VIDEO_URL";
     }
   </script>
 </body>
